@@ -11,6 +11,10 @@ on:
         description: 'Skip integration tests'
         type: boolean
         default: false
+      version_from_build_gradle:
+        description: 'Get version from build.gradle instead of conventional changelog'
+        type: boolean
+        default: false
     secrets:
       PACKAGE_TOKEN:
         required: false
@@ -71,9 +75,16 @@ jobs:
           skip-tag: "true"
 
       - name: Fetch new version
-        if: ${{ steps.changelog.outputs.skipped == 'false' }}
+        if: ${{ steps.changelog.outputs.skipped == 'false' && !inputs.version_from_build_gradle }}
         run: |
           NEW_VERSION=${{ steps.changelog.outputs.version }}
+          echo "Creating new version: $NEW_VERSION"
+          echo NEW_VERSION=$NEW_VERSION >> $GITHUB_ENV
+
+      - name: Fetch version from build.gradle
+        if: ${{ steps.changelog.outputs.skipped == 'false' && inputs.version_from_build_gradle }}
+        run: |
+          NEW_VERSION=$(./gradlew properties | grep "^version:" | awk '{print $2}')
           echo "Creating new version: $NEW_VERSION"
           echo NEW_VERSION=$NEW_VERSION >> $GITHUB_ENV
 

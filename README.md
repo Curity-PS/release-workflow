@@ -27,6 +27,7 @@ jobs:
 |-------|------|---------|-------------|
 | `skip_test` | `boolean` | `false` | Skip unit tests |
 | `skip_integration_test` | `boolean` | `false` | Skip integration tests |
+| `version_from_build_gradle` | `boolean` | `false` | Get the release version from `build.gradle` instead of the conventional-changelog output |
 
 ### Example: skip integration tests
 
@@ -49,6 +50,18 @@ jobs:
     with:
       skip_test: true
       skip_integration_test: true
+```
+
+### Example: use the version from build.gradle
+
+```yaml
+jobs:
+  release:
+    uses: curity-ps/release-workflow/.github/workflows/release.yml@main
+    with:
+      version_from_build_gradle: true
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
 ```
 
 ## Secrets
