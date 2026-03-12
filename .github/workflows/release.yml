@@ -15,6 +15,10 @@ on:
         description: 'Get version from build.gradle instead of conventional changelog'
         type: boolean
         default: false
+      make_release:
+        description: 'Create a GitHub release and tag'
+        type: boolean
+        default: true
     secrets:
       PACKAGE_TOKEN:
         required: false
@@ -31,6 +35,16 @@ jobs:
       GITHUB_ACTOR: ${{ github.actor }}
 
     steps:
+      - name: Validate LICENSE_KEY
+        if: ${{ !inputs.skip_integration_test }}
+        run: |
+          if [ -z "$LICENSE_KEY" ]; then
+            echo "::error::LICENSE_KEY secret is required when integration tests are enabled"
+            exit 1
+          fi
+        env:
+          LICENSE_KEY: ${{ secrets.LICENSE_KEY }}
+
       - name: Download code
         uses: actions/checkout@v4
         with:
@@ -61,6 +75,7 @@ jobs:
           LICENSE_KEY: ${{ secrets.LICENSE_KEY }}
 
       - name: Conventional changelog action
+        if: ${{ inputs.make_release }}
         id: changelog
         uses: TriPSs/conventional-changelog-action@v5
         with:
