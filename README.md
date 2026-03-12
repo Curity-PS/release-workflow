@@ -47,7 +47,7 @@ When triggered by a push to `main`, all tests run and a release is created (the 
 |-------|------|---------|-------------|
 | `skip_test` | `boolean` | `false` | Skip unit tests |
 | `skip_integration_test` | `boolean` | `false` | Skip integration tests |
-| `version_from_build_gradle` | `boolean` | `false` | Get the release version from `build.gradle` instead of the conventional-changelog output |
+| `version_from_gradle` | `boolean` | `false` | Use the Gradle project version (from `build.gradle`, `gradle.properties`, etc.) instead of the conventional-changelog version |
 | `make_release` | `boolean` | `true` | Create a GitHub release and tag |
 
 ### Example: skip integration tests
@@ -73,14 +73,14 @@ jobs:
       skip_integration_test: true
 ```
 
-### Example: use the version from build.gradle
+### Example: use the Gradle project version
 
 ```yaml
 jobs:
   release:
     uses: curity-ps/release-workflow/.github/workflows/release.yml@main
     with:
-      version_from_build_gradle: true
+      version_from_gradle: true
     secrets:
       PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
 ```

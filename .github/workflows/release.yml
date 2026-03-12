@@ -11,8 +11,8 @@ on:
         description: 'Skip integration tests'
         type: boolean
         default: false
-      version_from_build_gradle:
-        description: 'Get version from build.gradle instead of conventional changelog'
+      version_from_gradle:
+        description: 'Use the Gradle project version instead of the conventional-changelog version'
         type: boolean
         default: false
       make_release:
@@ -90,16 +90,20 @@ jobs:
           skip-tag: "true"
 
       - name: Fetch new version
-        if: ${{ steps.changelog.outputs.skipped == 'false' && !inputs.version_from_build_gradle }}
+        if: ${{ steps.changelog.outputs.skipped == 'false' && !inputs.version_from_gradle }}
         run: |
           NEW_VERSION=${{ steps.changelog.outputs.version }}
           echo "Creating new version: $NEW_VERSION"
           echo NEW_VERSION=$NEW_VERSION >> $GITHUB_ENV
 
-      - name: Fetch version from build.gradle
-        if: ${{ steps.changelog.outputs.skipped == 'false' && inputs.version_from_build_gradle }}
+      - name: Fetch version from Gradle
+        if: ${{ steps.changelog.outputs.skipped == 'false' && inputs.version_from_gradle }}
         run: |
-          NEW_VERSION=$(./gradlew properties | grep "^version:" | awk '{print $2}')
+          NEW_VERSION=$(./gradlew -q properties | grep "^version:" | awk '{print $2}' | xargs)
+          if [ -z "$NEW_VERSION" ] || [ "$NEW_VERSION" = "unspecified" ]; then
+            echo "::error::Could not resolve a valid version from Gradle. Make sure 'version' is set in your build.gradle or gradle.properties."
+            exit 1
+          fi
           echo "Creating new version: $NEW_VERSION"
           echo NEW_VERSION=$NEW_VERSION >> $GITHUB_ENV
 
