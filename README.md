@@ -4,22 +4,42 @@ A reusable GitHub Actions workflow for testing and releasing Gradle-based Curity
 
 ## Usage
 
-Create a workflow file in your repository (e.g. `.github/workflows/release.yml`) that calls this reusable workflow:
+Create a workflow file in your repository (e.g. `.github/workflows/release.yml`) that calls this reusable workflow. Use `workflow_dispatch` inputs so you can choose what to run from the GitHub UI:
 
 ```yaml
-name: Release
+name: Test & Release
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_unit_tests:
+        description: 'Run unit tests'
+        type: boolean
+        default: true
+      run_integration_tests:
+        description: 'Run integration tests'
+        type: boolean
+        default: true
+      make_release:
+        description: 'Create a release'
+        type: boolean
+        default: false
 
 jobs:
   release:
     uses: curity-ps/release-workflow/.github/workflows/release.yml@main
+    with:
+      skip_test: ${{ github.event_name == 'workflow_dispatch' && !inputs.run_unit_tests }}
+      skip_integration_test: ${{ github.event_name == 'workflow_dispatch' && !inputs.run_integration_tests }}
+      make_release: ${{ github.event_name != 'workflow_dispatch' || inputs.make_release }}
     secrets:
       PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
       LICENSE_KEY: ${{ secrets.LICENSE_KEY }}
 ```
+
+When triggered by a push to `main`, all tests run and a release is created (the defaults). When triggered manually via `workflow_dispatch`, you pick what to do using the checkboxes in the GitHub UI.
 
 ## Inputs
 
@@ -27,6 +47,8 @@ jobs:
 |-------|------|---------|-------------|
 | `skip_test` | `boolean` | `false` | Skip unit tests |
 | `skip_integration_test` | `boolean` | `false` | Skip integration tests |
+| `version_from_gradle` | `boolean` | `false` | Use the Gradle project version (from `build.gradle`, `gradle.properties`, etc.) instead of the conventional-changelog version |
+| `make_release` | `boolean` | `true` | Create a GitHub release and tag |
 
 ### Example: skip integration tests
 
@@ -51,12 +73,24 @@ jobs:
       skip_integration_test: true
 ```
 
+### Example: use the Gradle project version
+
+```yaml
+jobs:
+  release:
+    uses: curity-ps/release-workflow/.github/workflows/release.yml@main
+    with:
+      version_from_gradle: true
+    secrets:
+      PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+```
+
 ## Secrets
 
 | Secret | Required | Description |
 |--------|----------|-------------|
 | `PACKAGE_TOKEN` | No | GitHub token used for Gradle dependency resolution and creating releases. Falls back to the automatic `secrets.GITHUB_TOKEN` if not provided. Use a PAT if you need access to packages in other repositories. |
-| `LICENSE_KEY` | No | License key passed to integration tests. Only required when integration tests are enabled. |
+| `LICENSE_KEY` | **Yes** (when integration tests are enabled) | License key passed to integration tests. The workflow will fail if this secret is missing and `skip_integration_test` is `false`. |
 
 ## Requirements
 

@@ -11,6 +11,14 @@ on:
         description: 'Skip integration tests'
         type: boolean
         default: false
+      version_from_gradle:
+        description: 'Use the Gradle project version instead of the conventional-changelog version'
+        type: boolean
+        default: false
+      make_release:
+        description: 'Create a GitHub release and tag'
+        type: boolean
+        default: true
     secrets:
       PACKAGE_TOKEN:
         required: false
@@ -27,6 +35,16 @@ jobs:
       GITHUB_ACTOR: ${{ github.actor }}
 
     steps:
+      - name: Validate LICENSE_KEY
+        if: ${{ !inputs.skip_integration_test }}
+        run: |
+          if [ -z "$LICENSE_KEY" ]; then
+            echo "::error::LICENSE_KEY secret is required when integration tests are enabled"
+            exit 1
+          fi
+        env:
+          LICENSE_KEY: ${{ secrets.LICENSE_KEY }}
+
       - name: Download code
         uses: actions/checkout@v4
         with:
@@ -57,6 +75,7 @@ jobs:
           LICENSE_KEY: ${{ secrets.LICENSE_KEY }}
 
       - name: Conventional changelog action
+        if: ${{ inputs.make_release }}
         id: changelog
         uses: TriPSs/conventional-changelog-action@v5
         with:
@@ -71,9 +90,20 @@ jobs:
           skip-tag: "true"
 
       - name: Fetch new version
-        if: ${{ steps.changelog.outputs.skipped == 'false' }}
+        if: ${{ steps.changelog.outputs.skipped == 'false' && !inputs.version_from_gradle }}
         run: |
           NEW_VERSION=${{ steps.changelog.outputs.version }}
+          echo "Creating new version: $NEW_VERSION"
+          echo NEW_VERSION=$NEW_VERSION >> $GITHUB_ENV
+
+      - name: Fetch version from Gradle
+        if: ${{ steps.changelog.outputs.skipped == 'false' && inputs.version_from_gradle }}
+        run: |
+          NEW_VERSION=$(./gradlew -q properties | grep "^version:" | awk '{print $2}' | xargs)
+          if [ -z "$NEW_VERSION" ] || [ "$NEW_VERSION" = "unspecified" ]; then
+            echo "::error::Could not resolve a valid version from Gradle. Make sure 'version' is set in your build.gradle or gradle.properties."
+            exit 1
+          fi
           echo "Creating new version: $NEW_VERSION"
           echo NEW_VERSION=$NEW_VERSION >> $GITHUB_ENV
 
