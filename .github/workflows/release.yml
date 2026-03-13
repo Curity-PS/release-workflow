@@ -28,7 +28,9 @@ on:
 jobs:
   test_and_release:
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: write # tags/releases
+      packages: write # publishing packages
 
     env:
       GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN || secrets.GITHUB_TOKEN }}
