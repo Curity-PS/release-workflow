@@ -24,6 +24,13 @@ on:
         required: false
       LICENSE_KEY:
         required: false
+    outputs:
+      version:
+        description: 'The released version number'
+        value: ${{ jobs.test_and_release.outputs.version }}
+      skipped:
+        description: 'Whether the release was skipped'
+        value: ${{ jobs.test_and_release.outputs.skipped }}
 
 jobs:
   test_and_release:
@@ -31,6 +38,9 @@ jobs:
     permissions:
       contents: write # tags/releases
       packages: write # publishing packages
+    outputs:
+      version: ${{ steps.changelog.outputs.version }}
+      skipped: ${{ steps.changelog.outputs.skipped }}
 
     env:
       GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN || secrets.GITHUB_TOKEN }}
